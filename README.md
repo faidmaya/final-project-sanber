@@ -38,19 +38,11 @@ Seluruh fungsi dan ketentuan dari instruksi final project tetap dipenuhi sepenuh
 
 🚀 Cara Menjalankan Project
 1️⃣ Clone repository
-git clone https://github.com/username/final-project-pmapp.git
-cd final-project-pmapp
 
 2️⃣ Install dependencies
 npm install
 
 3️⃣ Buat file .env
-
-Isi dengan konfigurasi berikut:
-
-MONGO_URI=mongodb+srv://...
-JWT_SECRET=your_secret_key
-PORT=3000
 
 4️⃣ Jalankan server
 npm run dev
@@ -60,3 +52,4 @@ Server akan berjalan di:
 👉 http://localhost:3000
 
 👩‍💻 Developer (Maya)
+
