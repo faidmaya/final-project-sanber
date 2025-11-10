@@ -59,8 +59,4 @@ npm run dev
 Server akan berjalan di:
 👉 http://localhost:3000
 
-👩‍💻 Developer
-
-Nama: Maya Sofia
-Batch: SanberCode Bootcamp Batch 71
-Project: Final Project — PMApp
+👩‍💻 Developer (Maya)
