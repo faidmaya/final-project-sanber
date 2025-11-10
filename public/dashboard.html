@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | Mockup Next</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-to-b from-blue-50 to-pink-50 min-h-screen">
+
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <h1 class="text-xl font-semibold text-gray-700">Mockup Next</h1>
+    <div>
+      <button id="logout" class="text-gray-600 hover:text-red-500">Logout</button>
+    </div>
+  </nav>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-semibold text-gray-700">My Projects</h2>
+      <button id="addProjectBtn" class="btn-primary">+ Add Project</button>
+    </div>
+
+    <div id="project-list" class="grid md:grid-cols-3 sm:grid-cols-2 gap-4"></div>
+  </main>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg">
+      <h3 class="text-xl font-semibold mb-4 text-gray-700">Add New Project</h3>
+      <form id="project-form" class="space-y-3">
+        <input id="name" placeholder="Project Name" class="input-field" required>
+        <textarea id="description" placeholder="Description" class="input-field"></textarea>
+        <input id="deadline" type="date" class="input-field" required>
+        <div class="flex justify-end space-x-3 mt-4">
+          <button type="button" id="cancel" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/index.html';
+
+    const modal = document.getElementById('modal');
+    const addBtn = document.getElementById('addProjectBtn');
+    const cancel = document.getElementById('cancel');
+    const form = document.getElementById('project-form');
+    const list = document.getElementById('project-list');
+    const logout = document.getElementById('logout');
+
+    logout.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = '/index.html';
+    });
+
+    addBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    cancel.addEventListener('click', () => modal.classList.add('hidden'));
+
+    async function loadProjects() {
+      const res = await fetch('/api/projects', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const data = await res.json();
+      list.innerHTML = data.map(p => `
+        <div class="card">
+          <h3 class="font-semibold text-gray-700">${p.name}</h3>
+          <p class="text-sm text-gray-500">${p.description || 'No description'}</p>
+          <p class="text-xs text-gray-400 mt-2">End: ${new Date(p.endDate).toLocaleDateString()}</p>
+        </div>
+      `).join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newProj = {
+        name: document.getElementById('name').value,
+        description: document.getElementById('description').value,
+        deadline: document.getElementById('deadline').value
+      };
+
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token
+        },
+        body: JSON.stringify(newProj)
+      });
+
+      if (res.ok) {
+        modal.classList.add('hidden');
+        form.reset();
+        loadProjects();
+      } else {
+        alert('Gagal menambah project');
+      }
+    });
+
+    loadProjects();
+  </script>
+</body>
+</html>
