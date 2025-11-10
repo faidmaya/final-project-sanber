@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mockup Next | Login</title>
+  <title>Mockup Next | Login/Register</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,13 +15,19 @@
     <h2 class="text-lg mb-4 text-gray-600" id="form-title">Login</h2>
 
     <form id="auth-form" class="space-y-4">
+      <input id="username" type="text" placeholder="Username" class="input-field" required />
       <input id="email" type="email" placeholder="Email" class="input-field" required />
+      <select id="role" class="input-field" required>
+        <option value="">-- Pilih Role --</option>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
       <input id="password" type="password" placeholder="Password" class="input-field" required />
       <button type="submit" class="btn-primary w-full">Login</button>
     </form>
 
     <p class="mt-6 text-sm text-gray-500">
-      Belum punya akun?
+      <span id="toggle-text">Belum punya akun?</span>
       <a href="#" id="toggle" class="text-blue-500 hover:underline">Daftar di sini</a>
     </p>
 
@@ -33,37 +39,49 @@
     const form = document.getElementById('auth-form');
     const title = document.getElementById('form-title');
     const message = document.getElementById('message');
+    const toggleText = document.getElementById('toggle-text');
+
     let isLogin = true;
 
+    // Toggle Login/Register
     toggle.addEventListener('click', (e) => {
       e.preventDefault();
       isLogin = !isLogin;
       title.textContent = isLogin ? 'Login' : 'Register';
-      document.querySelector('button').textContent = isLogin ? 'Login' : 'Register';
+      form.querySelector('button').textContent = isLogin ? 'Login' : 'Register';
       toggle.textContent = isLogin ? 'Daftar di sini' : 'Login di sini';
+      toggleText.textContent = isLogin ? 'Belum punya akun?' : 'Sudah punya akun?';
       message.textContent = '';
     });
 
+    // Form submit
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       message.textContent = '';
 
+      const username = document.getElementById('username').value;
       const email = document.getElementById('email').value;
+      const role = document.getElementById('role').value;
       const password = document.getElementById('password').value;
 
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = isLogin
+        ? 'http://localhost:3000/api/auth/login'
+        : 'http://localhost:3000/api/auth/register';
+
+      const bodyData = isLogin
+        ? { email, password } // login
+        : { username, email, role, password }; // register
 
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify(bodyData)
         });
 
         const data = await res.json();
 
         if (res.ok) {
-          // Simpan token ke localStorage
           localStorage.setItem('token', data.token);
           window.location.href = '/dashboard.html';
         } else {
@@ -85,13 +103,11 @@
       font-size: 0.95rem;
       transition: border 0.2s;
     }
-
     .input-field:focus {
       outline: none;
       border-color: #f472b6;
       box-shadow: 0 0 3px #fbcfe8;
     }
-
     .btn-primary {
       background-color: #f472b6;
       color: white;
@@ -100,7 +116,6 @@
       font-weight: 500;
       transition: background 0.2s;
     }
-
     .btn-primary:hover {
       background-color: #ec4899;
     }

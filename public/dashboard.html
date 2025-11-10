@@ -25,7 +25,7 @@
     <div id="project-list" class="grid md:grid-cols-3 sm:grid-cols-2 gap-4"></div>
   </main>
 
-  <!-- Modal -->
+  <!-- Modal Add Project -->
   <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-lg">
       <h3 class="text-xl font-semibold mb-4 text-gray-700">Add New Project</h3>
@@ -60,20 +60,54 @@
     addBtn.addEventListener('click', () => modal.classList.remove('hidden'));
     cancel.addEventListener('click', () => modal.classList.add('hidden'));
 
+    // Load projects from API
     async function loadProjects() {
-      const res = await fetch('/api/projects', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      const data = await res.json();
-      list.innerHTML = data.map(p => `
-        <div class="card">
-          <h3 class="font-semibold text-gray-700">${p.name}</h3>
-          <p class="text-sm text-gray-500">${p.description || 'No description'}</p>
-          <p class="text-xs text-gray-400 mt-2">End: ${new Date(p.endDate).toLocaleDateString()}</p>
-        </div>
-      `).join('');
+      try {
+        const res = await fetch('http://localhost:3000/api/projects', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        const data = await res.json();
+        list.innerHTML = data.map(p => `
+          <div class="card p-4 bg-white rounded-lg shadow hover:shadow-md transition relative">
+            <h3 class="font-semibold text-gray-700">${p.name}</h3>
+            <p class="text-sm text-gray-500">${p.description || 'No description'}</p>
+            <p class="text-xs text-gray-400 mt-2">End: ${new Date(p.endDate).toLocaleDateString()}</p>
+            <button class="delete-btn absolute top-2 right-2 text-red-500 hover:text-red-700" data-id="${p.id}">
+              Delete
+            </button>
+          </div>
+        `).join('');
+
+        // Tambahkan event listener untuk delete setiap project
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = e.target.dataset.id;
+            if (confirm('Yakin ingin menghapus project ini?')) {
+              try {
+                const res = await fetch(`http://localhost:3000/api/projects/${id}`, {
+                  method: 'DELETE',
+                  headers: { Authorization: 'Bearer ' + token }
+                });
+                if (res.ok) {
+                  loadProjects(); // refresh list
+                } else {
+                  alert('Gagal menghapus project');
+                }
+              } catch (err) {
+                console.error(err);
+                alert('Gagal menghapus project');
+              }
+            }
+          });
+        });
+
+      } catch (err) {
+        console.error(err);
+        list.innerHTML = '<p class="text-red-500">Gagal memuat project.</p>';
+      }
     }
 
+    // Add new project
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const newProj = {
@@ -82,25 +116,74 @@
         deadline: document.getElementById('deadline').value
       };
 
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token
-        },
-        body: JSON.stringify(newProj)
-      });
+      try {
+        const res = await fetch('http://localhost:3000/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token
+          },
+          body: JSON.stringify(newProj)
+        });
 
-      if (res.ok) {
-        modal.classList.add('hidden');
-        form.reset();
-        loadProjects();
-      } else {
+        if (res.ok) {
+          modal.classList.add('hidden');
+          form.reset();
+          loadProjects();
+        } else {
+          alert('Gagal menambah project');
+        }
+      } catch (err) {
+        console.error(err);
         alert('Gagal menambah project');
       }
     });
 
     loadProjects();
   </script>
+
+  <style>
+    .input-field {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: border 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: #f472b6;
+      box-shadow: 0 0 3px #fbcfe8;
+    }
+    .btn-primary {
+      background-color: #f472b6;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #ec4899;
+    }
+    .btn-secondary {
+      background-color: #f3f4f6;
+      color: #374151;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover {
+      background-color: #e5e7eb;
+    }
+    .delete-btn {
+      font-size: 0.85rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
 </body>
 </html>
