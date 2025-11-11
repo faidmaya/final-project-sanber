@@ -42,16 +42,43 @@
   </div>
 
   <script>
-    const token = localStorage.getItem('token');
-    if (!token) window.location.href = '/index.html';
-
+    const logout = document.getElementById('logout');
     const modal = document.getElementById('modal');
     const addBtn = document.getElementById('addProjectBtn');
     const cancel = document.getElementById('cancel');
     const form = document.getElementById('project-form');
     const list = document.getElementById('project-list');
-    const logout = document.getElementById('logout');
 
+    // Helper authFetch
+    async function authFetch(url, options = {}) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/index.html';
+        return;
+      }
+
+      options.headers = {
+        ...options.headers,
+        Authorization: 'Bearer ' + token,
+      };
+
+      try {
+        const res = await fetch(url, options);
+        if (res.status === 401) {
+          // Token invalid / expired
+          localStorage.removeItem('token');
+          alert('Sesi habis, silahkan login lagi.');
+          window.location.href = '/index.html';
+          return;
+        }
+        return res;
+      } catch (err) {
+        console.error(err);
+        alert('Gagal terhubung ke server.');
+      }
+    }
+
+    // Logout
     logout.addEventListener('click', () => {
       localStorage.removeItem('token');
       window.location.href = '/index.html';
@@ -60,43 +87,44 @@
     addBtn.addEventListener('click', () => modal.classList.remove('hidden'));
     cancel.addEventListener('click', () => modal.classList.add('hidden'));
 
-    // Load projects from API
+    // Load projects
     async function loadProjects() {
       try {
-        const res = await fetch('http://localhost:3000/api/projects', {
-          headers: { Authorization: 'Bearer ' + token }
-        });
+        const res = await authFetch('http://localhost:3000/api/projects');
+        if (!res) return;
         const data = await res.json();
+
         list.innerHTML = data.map(p => `
           <div class="card p-4 bg-white rounded-lg shadow hover:shadow-md transition relative">
-            <h3 class="font-semibold text-gray-700">${p.name}</h3>
-            <p class="text-sm text-gray-500">${p.description || 'No description'}</p>
+            <div class="flex justify-between items-start">
+              <h3 class="font-semibold text-gray-700">${p.name}</h3>
+              <div class="relative">
+                <button class="menu-btn text-gray-400 hover:text-gray-600 focus:outline-none text-xl">⋮</button>
+                <div class="menu hidden absolute right-0 mt-2 w-24 bg-white border rounded shadow z-10">
+                  <button class="delete-btn w-full text-left px-2 py-1 text-red-500 hover:bg-gray-100" data-id="${p._id}">Delete</button>
+                </div>
+              </div>
+            </div>
+            <p class="text-sm text-gray-500 mt-2">${p.description || 'No description'}</p>
             <p class="text-xs text-gray-400 mt-2">End: ${new Date(p.endDate).toLocaleDateString()}</p>
-            <button class="delete-btn absolute top-2 right-2 text-red-500 hover:text-red-700" data-id="${p._id}">
-              Delete
-            </button>
           </div>
         `).join('');
 
-        // Tambahkan event listener untuk delete setiap project
+        // Toggle menu
+        document.querySelectorAll('.menu-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const menu = e.target.nextElementSibling;
+            menu.classList.toggle('hidden');
+          });
+        });
+
+        // Delete project
         document.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             const id = e.target.dataset.id;
             if (confirm('Yakin ingin menghapus project ini?')) {
-              try {
-                const res = await fetch(`http://localhost:3000/api/projects/${id}`, {
-                  method: 'DELETE',
-                  headers: { Authorization: 'Bearer ' + token }
-                });
-                if (res.ok) {
-                  loadProjects(); // refresh list
-                } else {
-                  alert('Gagal menghapus project');
-                }
-              } catch (err) {
-                console.error(err);
-                alert('Gagal menghapus project');
-              }
+              await authFetch(`http://localhost:3000/api/projects/${id}`, { method: 'DELETE' });
+              loadProjects(); // refresh list
             }
           });
         });
@@ -116,25 +144,17 @@
         deadline: document.getElementById('deadline').value
       };
 
-      try {
-        const res = await fetch('http://localhost:3000/api/projects', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Bearer ' + token
-          },
-          body: JSON.stringify(newProj)
-        });
+      const res = await authFetch('http://localhost:3000/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProj)
+      });
 
-        if (res.ok) {
-          modal.classList.add('hidden');
-          form.reset();
-          loadProjects();
-        } else {
-          alert('Gagal menambah project');
-        }
-      } catch (err) {
-        console.error(err);
+      if (res && res.ok) {
+        modal.classList.add('hidden');
+        form.reset();
+        loadProjects();
+      } else {
         alert('Gagal menambah project');
       }
     });
